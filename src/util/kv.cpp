@@ -1,6 +1,9 @@
 #include "easypr/util/kv.h"
 #include "easypr/util/util.h"
 
+/*
+*	将文件中的中英文对照转化为map容器中的键值对
+*/
 namespace easypr {
 
 Kv::Kv() { }

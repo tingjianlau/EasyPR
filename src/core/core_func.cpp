@@ -10,144 +10,153 @@ using namespace cv;
 namespace easypr {
 
 
-Mat colorMatch(const Mat &src, Mat &match, const Color r,
-               const bool adaptive_minsv) {
+	Mat colorMatch(const Mat &src, Mat &match, const Color r,
+		const bool adaptive_minsv) {
 
-  // if use adaptive_minsv
-  // min value of s and v is adaptive to h
+		// if use adaptive_minsv
+		// min value of s and v is adaptive to h
 
-  const float max_sv = 255;
-  const float minref_sv = 64;
+		// S和V的最小值由adaptive_minsv这个bool值判断
+		// 如果为true，则最小值取决于H值，按比例衰减
+		// 如果为false，则不再自适应，使用固定的最小值minabs_sv
+		// 默认为false
+		const float max_sv = 255;
+		const float minref_sv = 64;
 
-  const float minabs_sv = 95;
+		const float minabs_sv = 95;
 
-  // H range of blue 
+		// H range of blue 
 
-  const int min_blue = 100;  // 100
-  const int max_blue = 140;  // 140
+		const int min_blue = 100;  // 100
+		const int max_blue = 140;  // 140
 
-  // H range of yellow
+		// H range of yellow
 
-  const int min_yellow = 15;  // 15
-  const int max_yellow = 40;  // 40
+		const int min_yellow = 15;  // 15
+		const int max_yellow = 40;  // 40
 
-  // H range of white
+		// H range of white
 
-  const int min_white = 0;   // 15
-  const int max_white = 30;  // 40
+		const int min_white = 0;   // 15
+		const int max_white = 30;  // 40
 
-  Mat src_hsv;
+		Mat src_hsv;
 
-  // convert to HSV space
-  cvtColor(src, src_hsv, CV_BGR2HSV);
+		// convert to HSV space
+		// 转到HSV空间进行处理，颜色搜索主要使用的是H分量进行蓝色与黄色的匹配工作
+		cvtColor(src, src_hsv, CV_BGR2HSV);
 
-  std::vector<cv::Mat> hsvSplit;
-  split(src_hsv, hsvSplit);
-  equalizeHist(hsvSplit[2], hsvSplit[2]);
-  merge(hsvSplit, src_hsv);
+		// hsvSplit will contain H, S, V respectively
+		std::vector<cv::Mat> hsvSplit;
+		split(src_hsv, hsvSplit);
+		// 对蓝色通道直方图均衡化，提高对B的对比度
+		equalizeHist(hsvSplit[2], hsvSplit[2]);
+		merge(hsvSplit, src_hsv);
 
-  // match to find the color
+		// match to find the color
+		// 匹配模板基色,切换以查找想要的基色
+		int min_h = 0;
+		int max_h = 0;
+		switch (r) {
+		case BLUE:
+			min_h = min_blue;
+			max_h = max_blue;
+			break;
+		case YELLOW:
+			min_h = min_yellow;
+			max_h = max_yellow;
+			break;
+		case WHITE:
+			min_h = min_white;
+			max_h = max_white;
+			break;
+		default:
+			// Color::UNKNOWN
+			break;
+		}
 
-  int min_h = 0;
-  int max_h = 0;
-  switch (r) {
-    case BLUE:
-      min_h = min_blue;
-      max_h = max_blue;
-      break;
-    case YELLOW:
-      min_h = min_yellow;
-      max_h = max_yellow;
-      break;
-    case WHITE:
-      min_h = min_white;
-      max_h = max_white;
-      break;
-    default:
-      // Color::UNKNOWN
-      break;
-  }
+		float diff_h = float((max_h - min_h) / 2);
+		float avg_h = min_h + diff_h;
 
-  float diff_h = float((max_h - min_h) / 2);
-  float avg_h = min_h + diff_h;
+		int channels = src_hsv.channels();
+		int nRows = src_hsv.rows;
 
-  int channels = src_hsv.channels();
-  int nRows = src_hsv.rows;
+		// consider multi channel image
+		int nCols = src_hsv.cols * channels;
+		if (src_hsv.isContinuous()) {//连续存储的数据，按一行处理
+			nCols *= nRows;
+			nRows = 1;
+		}
+		
+		int i, j;
+		uchar* p;
+		float s_all = 0;
+		float v_all = 0;
+		float count = 0;
+		for (i = 0; i < nRows; ++i) {
+			p = src_hsv.ptr<uchar>(i);
+			for (j = 0; j < nCols; j += 3) {
+				int H = int(p[j]);      // 0-180
+				int S = int(p[j + 1]);  // 0-255
+				int V = int(p[j + 2]);  // 0-255
 
-  // consider multi channel image
-  int nCols = src_hsv.cols * channels;
-  if (src_hsv.isContinuous()) {
-    nCols *= nRows;
-    nRows = 1;
-  }
+				s_all += S;
+				v_all += V;
+				count++;
 
-  int i, j;
-  uchar* p;
-  float s_all = 0;
-  float v_all = 0;
-  float count = 0;
-  for (i = 0; i < nRows; ++i) {
-    p = src_hsv.ptr<uchar>(i);
-    for (j = 0; j < nCols; j += 3) {
-      int H = int(p[j]);      // 0-180
-      int S = int(p[j + 1]);  // 0-255
-      int V = int(p[j + 2]);  // 0-255
+				bool colorMatched = false;
 
-      s_all += S;
-      v_all += V;
-      count++;
+				if (H > min_h && H < max_h) {
+					float Hdiff = 0;
+					if (H > avg_h)
+						Hdiff = H - avg_h;
+					else
+						Hdiff = avg_h - H;
 
-      bool colorMatched = false;
+					float Hdiff_p = float(Hdiff) / diff_h;
 
-      if (H > min_h && H < max_h) {
-        float Hdiff = 0;
-        if (H > avg_h)
-          Hdiff = H - avg_h;
-        else
-          Hdiff = avg_h - H;
+					// S和V的最小值由adaptive_minsv这个bool值判断
+					// 如果为true，则最小值取决于H值，按比例衰减
+					// 如果为false，则不再自适应，使用固定的最小值minabs_sv
+					float min_sv = 0;
+					if (true == adaptive_minsv)
+						min_sv =
+						minref_sv -
+						minref_sv / 2 *
+						(1
+							- Hdiff_p);  // inref_sv - minref_sv / 2 * (1 - Hdiff_p)
+					else
+						min_sv = minabs_sv;  // add
 
-        float Hdiff_p = float(Hdiff) / diff_h;
+					if ((S > min_sv && S < max_sv) && (V > min_sv && V < max_sv))
+						colorMatched = true;
+				}
 
-        float min_sv = 0;
-        if (true == adaptive_minsv)
-          min_sv =
-              minref_sv -
-                  minref_sv / 2 *
-                      (1
-                          - Hdiff_p);  // inref_sv - minref_sv / 2 * (1 - Hdiff_p)
-        else
-          min_sv = minabs_sv;  // add
+				if (colorMatched == true) {
+					p[j] = 0;
+					p[j + 1] = 0;
+					p[j + 2] = 255;
+				}
+				else {
+					p[j] = 0;
+					p[j + 1] = 0;
+					p[j + 2] = 0;
+				}
+			}
+		}
 
-        if ((S > min_sv && S < max_sv) && (V > min_sv && V < max_sv))
-          colorMatched = true;
-      }
+		// cout << "avg_s:" << s_all / count << endl;
+		// cout << "avg_v:" << v_all / count << endl;
 
-      if (colorMatched == true) {
-        p[j] = 0;
-        p[j + 1] = 0;
-        p[j + 2] = 255;
-      } else {
-        p[j] = 0;
-        p[j + 1] = 0;
-        p[j + 2] = 0;
-      }
-    }
-  }
+		// 获取颜色匹配后的二值灰度图
+		Mat src_grey;
+		std::vector<cv::Mat> hsvSplit_done;
+		split(src_hsv, hsvSplit_done);
+		src_grey = hsvSplit_done[2];
+		match = src_grey;
 
-  // cout << "avg_s:" << s_all / count << endl;
-  // cout << "avg_v:" << v_all / count << endl;
-
-  // get the final binary
-
-  Mat src_grey;
-  std::vector<cv::Mat> hsvSplit_done;
-  split(src_hsv, hsvSplit_done);
-  src_grey = hsvSplit_done[2];
-
-  match = src_grey;
-
-  return src_grey;
-}
+		return src_grey;
+	}
 
 bool bFindLeftRightBound1(Mat &bound_threshold, int &posLeft, int &posRight) {
 

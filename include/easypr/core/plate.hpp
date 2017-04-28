@@ -22,6 +22,7 @@ Namespace where all the C++ EasyPR functionality resides
 */
 namespace easypr {
 
+	// 抽象的车牌类
   class CPlate {
   public:
     CPlate() { 

@@ -247,7 +247,12 @@ bool Utils::mkdir(const std::string folder) {
 bool Utils::imwrite(const std::string &file, const cv::Mat &image) {
   auto folder = file.substr(0, utils::get_last_slash(file));
   Utils::mkdir(folder);
-  return cv::imwrite(file, image);
+  bool flag = cv::imwrite(file, image);
+  if (!flag)
+  {
+	  std::cout << "Error: write file to " << file << " failed!" << std::endl;
+  }
+  return flag;
 }
 
 #ifdef OS_WINDOWS
