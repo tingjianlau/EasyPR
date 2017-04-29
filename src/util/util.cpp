@@ -255,6 +255,14 @@ bool Utils::imwrite(const std::string &file, const cv::Mat &image) {
   return flag;
 }
 
+void Utils::imshow(const std::string & winname, cv::Mat mat, int delay, int flags)
+{
+	cv::namedWindow(winname, flags);
+	cv::imshow(winname, mat);
+	cv::waitKey(0);
+	cv::destroyWindow(winname);
+}
+
 #ifdef OS_WINDOWS
 std::string Utils::utf8_to_gbk(const char* utf8) {
   int len = MultiByteToWideChar(CP_UTF8, 0, utf8, -1, NULL, 0);

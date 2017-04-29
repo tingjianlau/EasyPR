@@ -17,13 +17,22 @@ namespace easypr {
 			cout << "test_plate_locate" << endl;
 
 			//const string file = "resources/image/plate_locate.jpg";
-			const string file = "resources/image/ÔÁDR9475_20170426155554373.jpg";
+			//const string file = "resources/image/ÔÁDR9475_20170426155554373.jpg";
+			const string file = "resources/image/´¨A019W2.jpg";
 
 			cv::Mat src = imread(file);
+			if (src.data == NULL)
+			{
+				std::cout << "read image from " << file << " failed!" << std::endl;
+				getchar();
+				getchar();
+				exit(0);
+			}
 
 			vector<cv::Mat> resultVec;
 			CPlateLocate plate;
 			plate.setDebug(true);
+			plate.setImshow(false);
 			//plate.setLifemode(true);
 
 			int result = plate.plateLocate(src, resultVec);

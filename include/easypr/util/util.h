@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include "opencv2/core/core.hpp"
+#include <opencv2/highgui/highgui.hpp>
 
 #if defined(WIN32) || defined(_WIN32)
 #define OS_WINDOWS
@@ -125,6 +126,17 @@ class Utils {
    * if not, create it, then call cv::imwrite.
    */
   static bool imwrite(const std::string &file, const cv::Mat &image);
+
+  /* 
+  @brief:    自定义imshow函数，用于控制销毁的时间
+  @method:	easypr::Utils::imshow
+  @access:    public static 
+  @param 		winname		窗口名称
+  @param 		mat		显示对象
+  @param 		delay	窗口存活时间，为0则等待用户处理
+  @param 		flags	默认WINDOW_FREERATIO
+  */
+  static void imshow(const std::string& winname, cv::Mat mat, int delay=0, int flags= cv::WindowFlags::WINDOW_AUTOSIZE);
 
 #ifdef OS_WINDOWS
   static std::string utf8_to_gbk(const char* utf8);

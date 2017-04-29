@@ -42,6 +42,8 @@ class CPlateLocate {
 
   int sobelOper(const Mat& in, Mat& out, int blurSize, int morphW, int morphH);
 
+  void deleteNotArea(Mat & inmat, Color color);
+
 
   bool rotation(Mat& in, Mat& out, const Size rect_size, const Point2f center,
                 const double angle);
@@ -89,10 +91,13 @@ class CPlateLocate {
   inline void setJudgeAngle(int param) { m_angle = param; }
 
   inline void setDebug(bool param) { m_debug = param; }
+  
+  inline void setImshow(bool param) { m_imshow = param; }
 
 
   inline bool getDebug() { return m_debug; }
 
+  inline bool getImshow() { return m_imshow; }
 
   static const int DEFAULT_GAUSSIANBLUR_SIZE = 5;
   static const int SOBEL_SCALE = 1;
@@ -104,7 +109,9 @@ class CPlateLocate {
   static const int DEFAULT_MORPH_SIZE_HEIGHT = 3;  // 3
 
 
+  // 车牌区域扭正之后的固定宽度，以便SVM使用
   static const int WIDTH = 136;
+  // 车牌区域扭正之后的固定高度，以便SVM使用
   static const int HEIGHT = 36;
   static const int TYPE = CV_8UC3;
 
@@ -117,6 +124,9 @@ class CPlateLocate {
 
   static const int DEFAULT_DEBUG = 1;
 
+  // debug时，用于显示窗口图片, add by tjliu
+  static const int DEFAULT_IMSHOW = 1;
+
  protected:
 
   int m_GaussianBlurSize;
@@ -125,15 +135,21 @@ class CPlateLocate {
   int m_MorphSizeHeight;
 
 
+  // 设立一个偏差率error，根据这个偏差率计算最大和最小的宽高比rmax、rmin
+  // 判断矩形的r是否满足在rmax、rmin之间
   float m_error;
+  // 车牌宽高比
   float m_aspect;
+  // 车牌面积的最小比值
   int m_verifyMin;
+  // 车牌面积的最大比值
   int m_verifyMax;
 
   int m_angle;
 
-
   bool m_debug;
+
+  bool m_imshow;
 };
 
 } /*! \namespace easypr*/

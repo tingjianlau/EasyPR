@@ -64,8 +64,8 @@ namespace easypr {
 				int select = -1;
 				bool isRepeat = true;
 				while (isRepeat) {
-					//std::cin >> select;
-					select = 1;
+					std::cin >> select;
+					//select = 1;
 					isRepeat = false;
 					switch (select) {
 					case 1:
