@@ -18,7 +18,9 @@ namespace easypr {
 
 			//const string file = "resources/image/plate_locate.jpg";
 			//const string file = "resources/image/埡DR9475_20170426155554373.jpg";
-			const string file = "resources/image/捶A019W2.jpg";
+			//const string file = "resources/image/劼B23B77_20170425154110628.jpg";
+			const string file = "resources/image/賽BL7P50_20170425181159458.jpg";
+			//const string file = "resources/image/捶A019W2.jpg";
 
 			cv::Mat src = imread(file);
 			if (src.data == NULL)
@@ -31,11 +33,12 @@ namespace easypr {
 
 			vector<cv::Mat> resultVec;
 			CPlateLocate plate;
-			plate.setDebug(true);
+			plate.setDebug(false);
 			plate.setImshow(false);
 			//plate.setLifemode(true);
 
 			int result = plate.plateLocate(src, resultVec);
+			/*
 			if (result == 0) {
 				size_t num = resultVec.size();
 				for (size_t j = 0; j < num; j++) {
@@ -45,6 +48,7 @@ namespace easypr {
 				}
 				destroyWindow("plate_locate");
 			}
+			*/
 
 			return result;
 		}
@@ -52,14 +56,17 @@ namespace easypr {
 		int test_plate_judge() {
 			cout << "test_plate_judge" << endl;
 
-			cv::Mat src = imread("resources/image/plate_judge.jpg");
+			cv::Mat src = imread("resources/image/該LU9119_20170425151556285.jpg");
+			//cv::Mat src = imread("resources/image/賽BL7P50_20170425181159458.jpg");
+			//cv::Mat src = imread("resources/image/埡DR9475_20170426155554373.jpg");
+			//cv::Mat src = imread("resources/image/plate_judge.jpg");
 
 			vector<cv::Mat> matVec;
 
 			vector<cv::Mat> resultVec;
 
 			CPlateLocate lo;
-			lo.setDebug(1);
+			lo.setDebug(0);
 			lo.setLifemode(true);
 
 			int resultLo = lo.plateLocate(src, matVec);
@@ -68,12 +75,14 @@ namespace easypr {
 
 			cout << "plate_locate_img" << endl;
 			size_t num = matVec.size();
+			/*
 			for (size_t j = 0; j < num; j++) {
 				Mat resultMat = matVec[j];
 				imshow("plate_judge", resultMat);
 				waitKey(0);
 			}
 			destroyWindow("plate_judge");
+			*/
 
 			int resultJu = PlateJudge::instance()->plateJudge(matVec, resultVec);
 
@@ -83,11 +92,11 @@ namespace easypr {
 			num = resultVec.size();
 			for (size_t j = 0; j < num; j++) {
 				Mat resultMat = resultVec[j];
-				imshow("plate_judge", resultMat);
-				waitKey(0);
+				//imshow("plate_judge", resultMat);
+				//waitKey(0);
+				utils::imwrite("resources/image/tmp/0palte_after_svm" + utils::to_str(j) + ".jpg", resultMat);
 			}
-			destroyWindow("plate_judge");
-
+			cout << "After svm-judge, we got " << num << " plates" << endl;
 			return resultJu;
 		}
 
@@ -98,6 +107,7 @@ namespace easypr {
 
 			vector<CPlate> resultVec;
 			CPlateDetect pd;
+			pd.setPDDebug(true);
 			pd.setPDLifemode(true);
 
 			int result = pd.plateDetect(src, resultVec);
@@ -118,7 +128,9 @@ namespace easypr {
 		int test_plate_recognize() {
 			cout << "test_plate_recognize" << endl;
 
-			Mat src = imread("resources/image/test.jpg");
+			Mat src = imread("resources/image/賽BL7P50_20170425181159458.jpg");
+			//Mat src = imread("resources/image/劼B23B77_20170425154110628.jpg");
+			//Mat src = imread("resources/image/test.jpg");
 
 			CPlateRecognize pr;
 			pr.setLifemode(true);

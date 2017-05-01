@@ -36,10 +36,11 @@ namespace easypr {
     extractFeature(inMat, features);
 
     float response = svm_->predict(features);
-    /*std::cout << "response:" << response << std::endl;
+
+    std::cout << "response:" << response << std::endl;
 
     float score = svm_->predict(features, noArray(), cv::ml::StatModel::Flags::RAW_OUTPUT);
-    std::cout << "score:" << score << std::endl;*/
+    std::cout << "score:" << score << std::endl;
 
     result = (int)response;
 

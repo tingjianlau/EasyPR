@@ -138,6 +138,15 @@ class Utils {
   */
   static void imshow(const std::string& winname, cv::Mat mat, int delay=0, int flags= cv::WindowFlags::WINDOW_AUTOSIZE);
 
+  /* 
+  @brief:		将数字转化为string类型
+  @method:	easypr::Utils::to_str
+  @access:    public static 
+  @param 		num		需转换的对象
+  */
+  template<typename T>
+  static  std::string to_str(const T &num);
+
 #ifdef OS_WINDOWS
   static std::string utf8_to_gbk(const char* utf8);
 #endif

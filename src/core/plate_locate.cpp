@@ -128,6 +128,7 @@ namespace easypr {
 	*/
 	int CPlateLocate::colorSearch(const Mat &src, const Color r, Mat &out,
 		vector<RotatedRect> &outRects) {
+		std::cout << "Start to color-" << r << "-Search" << std::endl;
 		Mat match_grey;
 
 		// width is important to the final results;
@@ -139,7 +140,9 @@ namespace easypr {
 		colorMatch(src, match_grey, r, false);
 
 		if (m_debug) {
-			utils::imwrite("resources/image/tmp/match_grey.jpg", match_grey);
+			std::string fname = "resources/image/tmp/color-" + utils::to_str(r)+ "-Locate_1_colorMatch.jpg";
+			utils::imwrite(fname, match_grey);
+			std::cout << "color match..." << std::endl;
 		}
 
 		Mat src_threshold;
@@ -147,19 +150,21 @@ namespace easypr {
 		threshold(match_grey, src_threshold, 0, 255,
 			CV_THRESH_OTSU + CV_THRESH_BINARY);
 		if (m_debug) {
-			utils::imwrite("resources/image/tmp/auto_threshold.jpg", src_threshold);
+			std::string fname = "resources/image/tmp/color-" + utils::to_str(r)+ "-Locate_2_autoThreshold.jpg";
+			utils::imwrite(fname, src_threshold);
+			std::cout << "auto threshold..." << std::endl;
 		}
-				// 定义一个指定大小的长方形内核结构, 用于形态学处理
+		
+		// 定义一个指定大小的长方形内核结构, 用于形态学处理
 		Mat element = getStructuringElement(
 			MORPH_RECT, Size(color_morph_width, color_morph_height));
-		if (m_debug) {
-			Utils::imwrite("resources/image/tmp/structuringElement.jpg", element);
-		}
 		// 对二值图做闭操作, 即先膨胀在腐蚀
 		morphologyEx(src_threshold, src_threshold, MORPH_CLOSE, element);
 
 		if (m_debug) {
-			utils::imwrite("resources/image/tmp/coloe_morphologyEx.jpg", src_threshold);
+			std::string fname = "resources/image/tmp/color-" + utils::to_str(r)+ "-Locate_3_closeMorphologyEx.jpg";
+			utils::imwrite(fname, src_threshold);
+			std::cout << "close morphology Ex..." << std::endl;
 		}
 
 		src_threshold.copyTo(out);
@@ -176,7 +181,9 @@ namespace easypr {
 			for (int i = 0;i<contours.size();i++) {
 				drawContours(contoursImage, contours, i, Scalar(255), 2);
 			}
-			utils::imwrite("resources/image/tmp/allContours.jpg", contoursImage);
+			std::string fname = "resources/image/tmp/color-" + utils::to_str(r)+ "-Locate_4_allContours.jpg";
+			utils::imwrite(fname, contoursImage);
+			std::cout << "find all Contours ..." << std::endl;
 		}
 
 		vector<vector<Point>>::iterator itc = contours.begin();
@@ -195,25 +202,65 @@ namespace easypr {
 			for (int i = 0;i<contours.size();i++) {
 				drawContours(contoursImage, contours, i, Scalar(255), 2);
 			}
-			utils::imwrite("resources/image/tmp/allContours_after_verifySizes.jpg", contoursImage);
+			std::string fname = "resources/image/tmp/color-" + utils::to_str(r)+ "-Locate_5_allContours_after_verifySize.jpg";
+			utils::imwrite(fname, contoursImage);
+			std::cout << "find all Contours after verfifySizes ..." << std::endl;
 		}
 
+		if (m_debug)
+		{
+			Mat mat_debug;
+			src.copyTo(mat_debug);
+			// 在原图中标识出所有ROI区域
+			for (size_t i = 0; i < outRects.size(); i++) {
+				RotatedRect roi_rect = outRects[i];
+				if (m_debug) {
+					Point2f rect_points[4];
+					roi_rect.points(rect_points);
+					for (int j = 0; j < 4; j++)
+						line(mat_debug, rect_points[j], rect_points[(j + 1) % 4],
+							Scalar(0, 255, 255), 1, 8);
+				}
+				std::string fname = "resources/image/tmp/color-" + utils::to_str(r)+ "-Locate_6_all_ROI_rect.jpg";
+				utils::imwrite(fname, mat_debug);
+			}
+		}
+
+		std::cout << "Done for color-" << r << "-search and got "<< outRects.size() << " ROI-rects" << std::endl;
 		return 0;
 	}
 
 
+	/* 
+	@brief:		第一次Sobel搜索：通过文理分析法，搜索原图像中包围ROI区域的最小安全正矩形
+	@method:	easypr::CPlateLocate::sobelFrtSearch
+	@access:    public	
+	@param 		src		原图
+	@param 		outRects	返回的所有包含ROI区域的最小安全正矩形
+	*/
 	int CPlateLocate::sobelFrtSearch(const Mat &src,
 		vector<Rect_<float>> &outRects) {
+		std::cout << "start to first sobel search ..." << std::endl;
 		Mat src_threshold;
 
 		sobelOper(src, src_threshold, m_GaussianBlurSize, m_MorphSizeWidth,
 			m_MorphSizeHeight);
 
 		vector<vector<Point>> contours;
+		// 提取轮廓
 		findContours(src_threshold,
 			contours,               // a vector of contours
 			CV_RETR_EXTERNAL,
 			CV_CHAIN_APPROX_NONE);  // all pixels of each contours
+		std::cout << "Get " << contours.size() << " contours..." << std::endl;
+		if (m_debug) {
+			// 打印所有轮廓
+			Mat contoursImage(src_threshold.rows, src_threshold.cols, CV_8U, Scalar(0));
+			for (int i = 0;i<contours.size();i++) {
+				drawContours(contoursImage, contours, i, Scalar(255), 2);
+			}
+			utils::imwrite("resources/image/tmp/sobelLocate_6_allConours.jpg", contoursImage);
+		}
 
 		vector<vector<Point>>::iterator itc = contours.begin();
 
@@ -222,16 +269,46 @@ namespace easypr {
 		while (itc != contours.end()) {
 			RotatedRect mr = minAreaRect(Mat(*itc));
 
-
 			if (verifySizes(mr)) {
 				first_rects.push_back(mr);
 
 				float area = mr.size.height * mr.size.width;
 				float r = (float)mr.size.width / (float)mr.size.height;
 				if (r < 1) r = (float)mr.size.height / (float)mr.size.width;
+				++itc;
 			}
+			else
+			{
+				itc = contours.erase(itc);
+			}
+		}
+		if (m_debug) {
+			// 打印所有轮廓
+			Mat contoursImage(src_threshold.rows, src_threshold.cols, CV_8U, Scalar(0));
+			for (int i = 0;i<contours.size();i++) {
+				drawContours(contoursImage, contours, i, Scalar(255), 2);
+			}
+			utils::imwrite("resources/image/tmp/sobelLocate_7_allConours_after_verifySize.jpg", contoursImage);
+		}
+		std::cout << "Get " << first_rects.size() << " contours after verifySize ..." << std::endl;
 
-			++itc;
+		if (m_debug)
+		{
+			Mat mat_debug;
+			src.copyTo(mat_debug);
+			// 在原图中标识出所有ROI区域
+			for (size_t i = 0; i < first_rects.size(); i++) {
+				RotatedRect roi_rect = first_rects[i];
+				if (m_debug) {
+					Point2f rect_points[4];
+					roi_rect.points(rect_points);
+					for (int j = 0; j < 4; j++)
+						line(mat_debug, rect_points[j], rect_points[(j + 1) % 4],
+							Scalar(0, 255, 255), 1, 8);
+				}
+				std::string fname = "resources/image/tmp/sobelLocate_8_all_ROI_rect.jpg";
+				utils::imwrite(fname, mat_debug);
+			}
 		}
 
 		for (size_t i = 0; i < first_rects.size(); i++) {
@@ -242,10 +319,22 @@ namespace easypr {
 
 			outRects.push_back(safeBoundRect);
 		}
+
+		std::cout << "Get " << outRects.size() << " SafeBoundRect..." << std::endl;
+
 		return 0;
 	}
 
 
+	/* 
+	@brief:		第二次Sobel搜索，是在第一次Sobel搜索得到的候选经适当放大后的车牌子图上进行的
+				与sobelSecSearch相比对了去除柳钉和重置边界操作
+	@method:	easypr::CPlateLocate::sobelSecSearchPart
+	@access:    public 
+	@param 		bound		经过第一次搜索之后的包含ROI区域的最小安全正矩形
+	@param 		refpoint	该子图在原始图片中的相对中心点
+	@param 		outRects	输出的ROI区域图块
+	*/
 	int CPlateLocate::sobelSecSearchPart(Mat &bound, Point2f refpoint,
 		vector<RotatedRect> &outRects) {
 		Mat bound_threshold;
@@ -269,7 +358,7 @@ namespace easypr {
 				}
 			}
 
-			utils::imwrite("resources/image/tmp/repaireimg1.jpg", bound_threshold);
+			//utils::imwrite("resources/image/tmp/repaireimg1.jpg", bound_threshold);
 
 			// remove the left and right boundaries
 
@@ -277,7 +366,7 @@ namespace easypr {
 				bound_threshold.data[i * bound_threshold.cols + posLeft] = 0;
 				bound_threshold.data[i * bound_threshold.cols + posRight] = 0;
 			}
-			utils::imwrite("resources/image/tmp/repaireimg2.jpg", bound_threshold);
+			//utils::imwrite("resources/image/tmp/repaireimg2.jpg", bound_threshold);
 		}
 
 		vector<vector<Point>> contours;
@@ -311,14 +400,25 @@ namespace easypr {
 	}
 
 
+	/* 
+	@brief:		第二次Sobel搜索，是在第一次Sobel搜索得到的候选车牌子图上进行的
+	@method:	easypr::CPlateLocate::sobelSecSearch
+	@access:    public 
+	@param 		bound		经过第一次搜索之后的包含ROI区域的最小安全正矩形
+	@param 		refpoint	该子图在原始图片中的相对中心点
+	@param 		outRects	输出的ROI区域图块
+	*/
 	int CPlateLocate::sobelSecSearch(Mat &bound, Point2f refpoint,
 		vector<RotatedRect> &outRects) {
 		Mat bound_threshold;
 
-
+		// 与第一次sobel搜索使用的参数不一致
 		sobelOper(bound, bound_threshold, 3, 10, 3);
-
-		utils::imwrite("resources/image/tmp/sobelSecSearch.jpg", bound_threshold);
+		
+		if (m_debug)
+		{
+			utils::imwrite("resources/image/tmp/sobelSecSearch.jpg", bound_threshold);
+		}
 
 		vector<vector<Point>> contours;
 		findContours(bound_threshold,
@@ -350,18 +450,37 @@ namespace easypr {
 		return 0;
 	}
 
-
+	/* 
+	@brief:		对原始图片进行高斯\灰度\垂直边缘检测\二值化\闭操作
+	@method:	easypr::CPlateLocate::sobelOper
+	@access:    public 
+	@param 		in		原始图片
+	@param 		out		输出生成的二值化图片
+	@param 		blurSize	高斯模糊半径
+	@param 		morphW		闭操作结构元素宽度
+	@param 		morphH		闭操作结构元素高度
+	*/
 	int CPlateLocate::sobelOper(const Mat &in, Mat &out, int blurSize, int morphW,
 		int morphH) {
 		Mat mat_blur;
 		mat_blur = in.clone();
+		// step1.高斯模糊去噪
 		GaussianBlur(in, mat_blur, Size(blurSize, blurSize), 0, 0, BORDER_DEFAULT);
+		if (m_debug)
+		{
+			utils::imwrite("resources/image/tmp/sobelLocate_1_gaussianBlur.jpg", mat_blur);
+		}
 
 		Mat mat_gray;
+		// step2.灰度化
 		if (mat_blur.channels() == 3)
 			cvtColor(mat_blur, mat_gray, CV_RGB2GRAY);
 		else
 			mat_gray = mat_blur;
+		if (m_debug)
+		{
+			utils::imwrite("resources/image/tmp/sobelLocate_2_gray.jpg", mat_gray);
+		}
 
 		int scale = SOBEL_SCALE;
 		int delta = SOBEL_DELTA;
@@ -371,19 +490,36 @@ namespace easypr {
 		Mat abs_grad_x, abs_grad_y;
 
 
+		// step3. Sobel垂直边缘检测
 		Sobel(mat_gray, grad_x, ddepth, 1, 0, 3, scale, delta, BORDER_DEFAULT);
+		// 将中间结果转换到 CV_8U
 		convertScaleAbs(grad_x, abs_grad_x);
 
 		Mat grad;
+		// 将两个方向的梯度相加来求取近似梯度, 此时并没有垂直方向梯度
 		addWeighted(abs_grad_x, SOBEL_X_WEIGHT, 0, 0, 0, grad);
+		if (m_debug)
+		{
+			utils::imwrite("resources/image/tmp/sobelLocate_3_sobel.jpg", grad);
+		}
 
 		Mat mat_threshold;
+		// step4. 二值化
 		double otsu_thresh_val =
 			threshold(grad, mat_threshold, 0, 255, CV_THRESH_OTSU + CV_THRESH_BINARY);
+		if (m_debug)
+		{
+			utils::imwrite("resources/image/tmp/sobelLocate_4_otsuBinary.jpg", mat_threshold);
+		}
 
 
+		// step5. 闭操作
 		Mat element = getStructuringElement(MORPH_RECT, Size(morphW, morphH));
 		morphologyEx(mat_threshold, mat_threshold, MORPH_CLOSE, element);
+		if (m_debug)
+		{
+			utils::imwrite("resources/image/tmp/sobelLocate_5_closeMorphEx.jpg", mat_threshold);
+		}
 
 		out = mat_threshold;
 
@@ -398,7 +534,7 @@ namespace easypr {
 	@param 		color	当前车牌颜色
 	*/
 	void CPlateLocate::deleteNotArea(Mat &inmat, Color color = UNKNOWN) {
-		m_imshow = true;
+		m_imshow = false;
 		if (m_imshow)
 		{
 			utils::imshow("in", inmat);
@@ -430,7 +566,7 @@ namespace easypr {
 			// threshold(input_grey, img_threshold, 5, 255, CV_THRESH_OTSU +
 			// CV_THRESH_BINARY);
 
-			utils::imwrite("resources/image/tmp/after_thresholdOtsu_bule.jpg", img_threshold);
+			//utils::imwrite("resources/image/tmp/after_thresholdOtsu_bule.jpg", img_threshold);
 
 		}
 		else if (YELLOW == plateType) {
@@ -441,7 +577,7 @@ namespace easypr {
 			threshold(input_grey, img_threshold, threadHoldV, 255,
 				CV_THRESH_BINARY_INV);
 
-			utils::imwrite("resources/image/tmp/after_thresholdOtsu_yellow.jpg", img_threshold);
+			//utils::imwrite("resources/image/tmp/after_thresholdOtsu_yellow.jpg", img_threshold);
 
 			// threshold(input_grey, img_threshold, 10, 255, CV_THRESH_OTSU +
 			// CV_THRESH_BINARY_INV);
@@ -475,39 +611,21 @@ namespace easypr {
 
 
 	/*
-	@brief:		扭正偏斜的车牌
+	@brief:		扭正偏斜的车牌，并返回符合尺寸要求的候选车牌
 	@method:	easypr::CPlateLocate::deskew
 	@access:    public
-	@param	src		原图	
-	@param	src_b	经过颜色匹配后的包含所有车牌可疑区域的二值图
-	@param	inRects	存放包含疑似车牌区域轮廓的最小斜矩形 
-	@param	outPlates	
-	@param	useDeteleArea
+	@param	src			原图	
+	@param	src_b		经过颜色匹配或sobelOper操作后的包含所有车牌可疑区域的二值图
+	@param	inRects		存放包含疑似车牌区域轮廓的最小斜矩形 
+	@param	outPlates	返回经过扭正等一系列操作之后的车牌
+	@param	useDeteleArea	是否删除图片的无效区域
 	@param	color	指定车牌颜色
 	*/
 	int CPlateLocate::deskew(const Mat &src, const Mat &src_b,
 		vector<RotatedRect> &inRects,
 		vector<CPlate> &outPlates, bool useDeteleArea, Color color) {
+		std::cout << "Start to " << color << "-deckew" << std::endl;
 
-		Mat mat_debug;
-		src.copyTo(mat_debug);
-
-		if (m_debug)
-		{
-			// 在原图中标识出所有ROI区域
-			for (size_t i = 0; i < inRects.size(); i++) {
-				RotatedRect roi_rect = inRects[i];
-				if (m_debug) {
-					Point2f rect_points[4];
-					roi_rect.points(rect_points);
-					for (int j = 0; j < 4; j++)
-						line(mat_debug, rect_points[j], rect_points[(j + 1) % 4],
-							Scalar(0, 255, 255), 1, 8);
-				}
-				Utils::imwrite("resources/image/tmp/all_roi_rect.jpg", mat_debug);
-			}
-		}
-		
 		for (size_t i = 0; i < inRects.size(); i++) {
 			RotatedRect roi_rect = inRects[i];
 				
@@ -535,19 +653,20 @@ namespace easypr {
 				// 截取原图像中对应safeBoundRect像素区域的一个图块
 				Mat bound_mat = src(safeBoundRect);
 				Mat bound_mat_b = src_b(safeBoundRect);
-				if (m_debug)
+				if (0)
 				{
 					Utils::imwrite("resources/image/tmp/bound_mat_from_src.jpg", bound_mat);
 					Utils::imwrite("resources/image/tmp/bound_mat_from_binary.jpg", bound_mat_b);
 				}
 
-				if (1)
+				if (0)
 				{
 					std::cout << i << "-th roi_angle:" << roi_angle << std::endl;
 				}
 
 				Point2f roi_ref_center = roi_rect.center - safeBoundRect.tl();
 
+				// 判断是否需要进行旋转
 				Mat deskew_mat;
 				if ((roi_angle - 5 < 0 && roi_angle + 5 > 0) || 90.0 == roi_angle ||
 					-90.0 == roi_angle) {
@@ -565,8 +684,7 @@ namespace easypr {
 						roi_angle))
 						continue;
 
-					// we need affine for rotatioed image
-
+					// 扭正偏斜的车牌
 					double roi_slope = 0;
 					if (isdeflection(rotated_mat_b, roi_angle, roi_slope)) {
 						affine(rotated_mat, deskew_mat, roi_slope);
@@ -583,11 +701,12 @@ namespace easypr {
 				if (useDeteleArea)
 					deleteNotArea(deskew_mat, color);
 
-				if (m_debug)
+				if (0)
 				{
 					utils::imwrite("resources/image/tmp/deleteNotArea.jpg", deskew_mat);
 				}
 
+				// 根据尺寸筛选候选车牌
 				if (deskew_mat.cols * 1.0 / deskew_mat.rows > 2.3 &&
 					deskew_mat.cols * 1.0 / deskew_mat.rows < 6) {
 
@@ -596,10 +715,6 @@ namespace easypr {
 					else
 						resize(deskew_mat, plate_mat, plate_mat.size(), 0, 0, INTER_CUBIC);
 
-					if (m_debug)
-					{
-						utils::imwrite("resources/image/tmp/resizeMat.jpg", plate_mat);
-					}
 					CPlate plate;
 					plate.setPlatePos(roi_rect);
 					plate.setPlateMat(plate_mat);
@@ -609,6 +724,8 @@ namespace easypr {
 				}
 			}
 		}
+
+		std::cout << "Done for " << color << "-color deskew and got "<< outPlates.size() << " plates" << std::endl;
 
 		return 0;
 	}
@@ -626,6 +743,7 @@ namespace easypr {
 	*/
 	bool CPlateLocate::rotation(Mat &in, Mat &out, const Size rect_size,
 		const Point2f center, const double angle) {
+		m_imshow = false;
 		if (m_imshow) {
 			utils::imshow("rotation-in", in, 0);
 		}
@@ -676,7 +794,7 @@ namespace easypr {
 		warpAffine(in_large, mat_rotated, rot_mat, Size(in_large.cols, in_large.rows),
 			CV_INTER_CUBIC);
 
-		if (m_debug)
+		if (0)
 		{
 			Utils::imwrite("resources/image/tmp/rotated.jpg", mat_rotated);
 		}
@@ -688,7 +806,7 @@ namespace easypr {
 
 		out = img_crop;
 
-		if (m_debug)
+		if (0)
 		{
 			Utils::imwrite("resources/image/tmp/rotated_crop.jpg", img_crop);
 		}
@@ -706,7 +824,7 @@ namespace easypr {
 	*/
 	bool CPlateLocate::isdeflection(const Mat &in, const double angle,
 		double &slope) { 
-		m_imshow = true;
+		m_imshow = false;
 		if (m_imshow) {
 			utils::imshow("in", in);
 		}
@@ -788,7 +906,7 @@ namespace easypr {
 	@param 		slope	已经计算好的车牌偏斜度
 	*/
 	void CPlateLocate::affine(const Mat &in, Mat &out, const double slope) {
-		m_imshow = true;
+		m_imshow = false;
 		if (m_imshow)
 		{
 			utils::imshow("in", in);
@@ -848,7 +966,7 @@ namespace easypr {
 		{
 			utils::imshow("out", out);
 		}
-		if (m_debug)
+		if (0)
 		{
 			Utils::imwrite("resources/image/tmp/affine.jpg", affine_mat);
 		}
@@ -859,12 +977,13 @@ namespace easypr {
 	@method:	easypr::CPlateLocate::plateColorLocate
 	@access:    public
 	@param 		src		原始图片
-	@param 		candPlates	返回的备选车牌位置区域
+	@param 		candPlates	返回的备选车牌
 	@param 		index
 	*/
 	int CPlateLocate::plateColorLocate(Mat src, vector<CPlate> &candPlates,
 		int index) {
 		// 存放包含疑似车牌区域轮廓的最小斜矩形 
+		std::cout << "\n====================== Start to Plate Color Locate ==================" << std::endl;
 		vector<RotatedRect> rects_color_blue;
 		rects_color_blue.reserve(64);
 		vector<RotatedRect> rects_color_yellow;
@@ -880,7 +999,7 @@ namespace easypr {
 		// 经过颜色匹配后的二值图
 		Mat src_b_blue;
 		Mat src_b_yellow;
-		// 并行
+		// 每个车牌都经过蓝颜色和黄颜色两种同样的处理过程，并将候选车牌结果汇总
 #pragma omp parallel sections
 		{
 #pragma omp section
@@ -898,6 +1017,7 @@ namespace easypr {
 		candPlates.insert(candPlates.end(), plates_blue.begin(), plates_blue.end());
 		candPlates.insert(candPlates.end(), plates_yellow.begin(), plates_yellow.end());
 
+		std::cout << "\n====================== End to Plate Color Locate ==================" << std::endl;
 		return 0;
 	}
 
@@ -914,7 +1034,7 @@ namespace easypr {
 		//int scale_size = CParams::instance()->getParam1i();
 		double scale_ratio = 1;
 
-		// only conside blue plate
+		// only consider blue plate
 		if (1) {
 			Mat grayImage;
 			cvtColor(src, grayImage, COLOR_BGR2GRAY);
@@ -1036,6 +1156,7 @@ namespace easypr {
 		return 0;
 	}
 
+	// 和sobelOper()一样一样?
 	int CPlateLocate::sobelOperT(const Mat &in, Mat &out, int blurSize, int morphW,
 		int morphH) {
 		Mat mat_blur;
@@ -1048,7 +1169,7 @@ namespace easypr {
 		else
 			mat_gray = mat_blur;
 
-		utils::imwrite("resources/image/tmp/grayblure.jpg", mat_gray);
+		//utils::imwrite("resources/image/tmp/grayblure.jpg", mat_gray);
 
 		// equalizeHist(mat_gray, mat_gray);
 
@@ -1065,36 +1186,40 @@ namespace easypr {
 		Mat grad;
 		addWeighted(abs_grad_x, 1, 0, 0, 0, grad);
 
-		utils::imwrite("resources/image/tmp/graygrad.jpg", grad);
+		//utils::imwrite("resources/image/tmp/graygrad.jpg", grad);
 
 		Mat mat_threshold;
 		double otsu_thresh_val =
 			threshold(grad, mat_threshold, 0, 255, CV_THRESH_OTSU + CV_THRESH_BINARY);
 
-		utils::imwrite("resources/image/tmp/grayBINARY.jpg", mat_threshold);
+		//utils::imwrite("resources/image/tmp/grayBINARY.jpg", mat_threshold);
 
 		Mat element = getStructuringElement(MORPH_RECT, Size(morphW, morphH));
 		morphologyEx(mat_threshold, mat_threshold, MORPH_CLOSE, element);
 
-		utils::imwrite("resources/image/tmp/phologyEx.jpg", mat_threshold);
+		//utils::imwrite("resources/image/tmp/phologyEx.jpg", mat_threshold);
 
 		out = mat_threshold;
 
 		return 0;
 	}
 
+	
 	int CPlateLocate::plateSobelLocate(Mat src, vector<CPlate> &candPlates,
 		int index) {
+		std::cout << "\n====================== Start to Plate Sobel Locate ==================" << std::endl;
 		vector<RotatedRect> rects_sobel_all;
 		rects_sobel_all.reserve(256);
 
 		vector<CPlate> plates;
 		plates.reserve(32);
 
+		// 存储所有包含ROI区域的最小正矩形
 		vector<Rect_<float>> bound_rects;
 		bound_rects.reserve(256);
 
 		sobelFrtSearch(src, bound_rects);
+		std::cout << "After first Sobel search, we got " << bound_rects.size() << " ROI!" << std::endl;
 
 		vector<Rect_<float>> bound_rects_part;
 		bound_rects_part.reserve(256);
@@ -1121,8 +1246,9 @@ namespace easypr {
 			}
 		}
 
+		// 分别对放大后的候选区域和原始的候选区域进行二次Sobel搜索
 		// second processing to split one
-#pragma omp parallel for
+#pragma omp parallel for // 对for循环进行并行
 		for (int i = 0; i < (int)bound_rects_part.size(); i++) {
 			Rect_<float> bound_rect = bound_rects_part[i];
 			Point2f refpoint(bound_rect.x, bound_rect.y);
@@ -1142,17 +1268,20 @@ namespace easypr {
 			rects_sobel.reserve(128);
 			sobelSecSearchPart(bound_mat, refpoint, rects_sobel);
 
+// 遇到if定义的情况时，限定以下的部分一次只用一个线程
 #pragma omp critical
 			{
 				rects_sobel_all.insert(rects_sobel_all.end(), rects_sobel.begin(), rects_sobel.end());
 			}
 		}
+		std::cout << "After second Sobel Part search in inlarge ROIs, we got " << rects_sobel_all.size() << " ROI!" << std::endl;
 
 #pragma omp parallel for
 		for (int i = 0; i < (int)bound_rects.size(); i++) {
 			Rect_<float> bound_rect = bound_rects[i];
 			Point2f refpoint(bound_rect.x, bound_rect.y);
 
+			// 安全性检查，防止越界
 			float x = bound_rect.x > 0 ? bound_rect.x : 0;
 			float y = bound_rect.y > 0 ? bound_rect.y : 0;
 
@@ -1173,6 +1302,7 @@ namespace easypr {
 				rects_sobel_all.insert(rects_sobel_all.end(), rects_sobel.begin(), rects_sobel.end());
 			}
 		}
+		std::cout << "After second Sobel search in origin ROIs, we got " << rects_sobel_all.size() << " ROI!" << std::endl;
 
 		Mat src_b;
 		sobelOper(src, src_b, 3, 10, 3);
@@ -1184,22 +1314,68 @@ namespace easypr {
 
 		candPlates.insert(candPlates.end(), plates.begin(), plates.end());
 
+		std::cout << "\n====================== End to Plate Sobel Locate ==================" << std::endl;
 		return 0;
 	}
 
 
+	/* 
+	@brief:		车牌定位: 颜色定位法，文理定位法，文字定位法
+	@method:	easypr::CPlateLocate::plateLocate
+	@access:    public 
+	@param 		src		原图
+	@param 		resultVec	车牌ROI子图
+	@param 		index
+	*/
 	int CPlateLocate::plateLocate(Mat src, vector<Mat> &resultVec, int index) {
 		vector<CPlate> all_result_Plates;
 
-		plateColorLocate(src, all_result_Plates, index);
+		int n_curPlates = 0;
+		if (1)
+		{
+			plateColorLocate(src, all_result_Plates, index);
+			n_curPlates = all_result_Plates.size();
+			cout << "\nAfter color Locate, we got " << all_result_Plates.size() << " condidate plates!!" << endl;
+			if (1)
+			{
+				for (int i = 0; i < all_result_Plates.size(); i++)
+				{
+					string pathname = "resources/image/tmp/plate_colorLocate-" + utils::to_str(i) + ".jpg";
+					utils::imwrite(pathname, all_result_Plates[i].getPlateMat());
+				}
+			}
+		}
+
 		plateSobelLocate(src, all_result_Plates, index);
+		cout << "\nAfter Sobel Locate, we got " << all_result_Plates.size() - n_curPlates << " condidate plates!!" << endl;
+		if (1)
+		{
+			for (int i = n_curPlates; i < all_result_Plates.size(); i++)
+			{
+				string pathname = "resources/image/tmp/plate_sobelLocate-" + utils::to_str(i-n_curPlates) + ".jpg";
+				utils::imwrite(pathname, all_result_Plates[i-n_curPlates].getPlateMat());
+			}
+		}
+		n_curPlates = all_result_Plates.size();
+
 		plateMserLocate(src, all_result_Plates, index);
+		cout << "\nAfter Mser Locate, we got " << all_result_Plates.size() - n_curPlates << " condidate plates!!" << endl;
+		if (1)
+		{
+			for (int i = n_curPlates; i < all_result_Plates.size(); i++)
+			{
+				string pathname = "resources/image/tmp/plate_mserLocate-" + utils::to_str(i-n_curPlates) + ".jpg";
+				utils::imwrite(pathname, all_result_Plates[i-n_curPlates].getPlateMat());
+			}
+		}
+
 
 		for (size_t i = 0; i < all_result_Plates.size(); i++) {
 			CPlate plate = all_result_Plates[i];
 			resultVec.push_back(plate.getPlateMat());
 		}
 
+		cout << "\n\nAfter all Locate method, we got " << all_result_Plates.size() << " condidate plates!!!" << endl << endl;
 		return 0;
 	}
 

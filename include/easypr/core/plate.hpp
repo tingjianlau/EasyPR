@@ -132,10 +132,10 @@ namespace easypr {
     }
 
   private:
-    //! plate mat
+    //! plate mat 从原图中截取出来并经过处理的车牌字图片
     Mat m_plateMat;
 
-    //! plate rect
+    //! plate rect 车牌在原始图片中的ROI区域
     RotatedRect m_platePos;
 
     //! plate license

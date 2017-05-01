@@ -37,6 +37,14 @@ bool bFindLeftRightBound2(Mat& bound_threshold, int& posLeft, int& posRight);
 
 bool clearLiuDing(Mat& img);
 void clearLiuDingOnly(Mat& img);
+/*
+@brief:		去除柳钉
+@method:	easypr::clearLiuDing
+@access:    public
+@param 		mask	二值图
+@param 		top		返回去除柳钉之后的top
+@param 		bottom	返回去除柳钉之后的bottom
+*/
 void clearLiuDing(Mat mask, int& top, int& bottom);
 
 Color getPlateType(const Mat& src, const bool adaptive_minsv);
@@ -99,6 +107,14 @@ Mat adaptive_image_from_points(const std::vector<Point>& points,
 // Calculate a rect have same length and width and remains the center
 Rect adaptive_charrect_from_rect(const Rect& rect, int maxwidth, int maxheight);
 
+/*
+@brief:		判断包围斜四边形的最小矩形是否安全
+@method:	easypr::calcSafeRect
+@access:    public
+@param 		roi_rect	ROI斜四边形
+@param 		src			原图像
+@param 		safeBoundRect	返回安全的包围roi_rect的最小正矩形
+*/
 bool calcSafeRect(const RotatedRect& roi_rect, const Mat& src,
   Rect_<float>& safeBoundRect);
 bool calcSafeRect(const RotatedRect &roi_rect, const int width, const int height,

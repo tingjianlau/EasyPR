@@ -158,10 +158,21 @@ namespace easypr {
 		return src_grey;
 	}
 
+	/* 
+	@brief:		判断车牌的左右边界是否可以向图片中心靠拢
+	@method:	easypr::bFindLeftRightBound1
+	@access:    public 
+	@param 		bound_threshold	去除柳钉后的二值图
+	@param 		posLeft		返回新的车牌有效区域的左边界
+	@param 		posRight	返回新的车牌有效区域的右边界
+	*/
 	bool bFindLeftRightBound1(Mat &bound_threshold, int &posLeft, int &posRight) {
 
 		float span = bound_threshold.rows * 0.2f;
 
+		// 从左往右依次扫描一个高为rows长为span的小矩形，统计其包含的白点数
+		// 若白点数的密度超过一定范围，则认为车牌有效区域的左边界为该长方形
+		// 的左边顶点的横坐标，否则向右移动矩形，滑动窗口大小为1
 		for (int i = 0; i < bound_threshold.cols - span - 1; i += 3) {
 			int whiteCount = 0;
 			for (int k = 0; k < bound_threshold.rows; k++) {
@@ -179,6 +190,7 @@ namespace easypr {
 		span = bound_threshold.rows * 0.2f;
 
 
+		// 同理找到右边界
 		for (int i = bound_threshold.cols - 1; i > span; i -= 2) {
 			int whiteCount = 0;
 			for (int k = 0; k < bound_threshold.rows; k++) {
@@ -423,10 +435,20 @@ namespace easypr {
 		return true;
 	}
 
+	/* 
+	@brief:		去除柳钉
+	@method:	easypr::clearLiuDing
+	@access:    public 
+	@param 		mask	二值图
+	@param 		top		返回去除柳钉之后的top
+	@param 		bottom	返回去除柳钉之后的bottom 
+	*/
 	void clearLiuDing(Mat mask, int &top, int &bottom) {
 		const int x = 7;
 
+		// 找到上边界
 		for (int i = 0; i < mask.rows / 2; i++) {
+			// 计算每行的阶跃数和白点数
 			int whiteCount = 0;
 			int jumpCount = 0;
 			for (int j = 0; j < mask.cols - 1; j++) {
@@ -436,6 +458,7 @@ namespace easypr {
 					whiteCount++;
 				}
 			}
+			// 判断当前行有柳钉存在的条件
 			if ((jumpCount < x && whiteCount * 1.0 / mask.cols > 0.15) ||
 				whiteCount < 4) {
 				top = i;
@@ -446,8 +469,7 @@ namespace easypr {
 			top = 0;
 		}
 
-		// ok, find top and bottom boudnadry
-
+		// 找到下边界
 		for (int i = mask.rows - 1; i >= mask.rows / 2; i--) {
 			int jumpCount = 0;
 			int whiteCount = 0;
@@ -473,6 +495,12 @@ namespace easypr {
 		}
 	}
 
+	/* 
+	@brief:		返回大津算法(最大类间方差法)计算出的最佳二值化阈值 
+	@method:	easypr::ThresholdOtsu
+	@access:    public 
+	@param 		mat		灰度图
+	*/
 	int ThresholdOtsu(Mat mat) {
 		int height = mat.rows;
 		int width = mat.cols;
@@ -2251,14 +2279,7 @@ namespace easypr {
 	}
 
 
-	/*
-	@brief:		判断包围斜四边形的最小矩形是否安全
-	@method:	easypr::calcSafeRect
-	@access:    public
-	@param 		roi_rect	ROI斜四边形
-	@param 		src			原图像
-	@param 		safeBoundRect	返回安全的包围roi_rect的最小正矩形
-	*/
+	
 	bool calcSafeRect(const RotatedRect &roi_rect, const Mat &src,
 		Rect_<float> &safeBoundRect) {
 		// 返回一个roi_rect的最小外接矩形

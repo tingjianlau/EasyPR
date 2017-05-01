@@ -1,5 +1,6 @@
 #include "easypr/util/util.h"
 #include <string>
+#include <sstream>
 
 #ifdef OS_WINDOWS
 #include <windows.h>
@@ -261,6 +262,16 @@ void Utils::imshow(const std::string & winname, cv::Mat mat, int delay, int flag
 	cv::imshow(winname, mat);
 	cv::waitKey(0);
 	cv::destroyWindow(winname);
+}
+
+template<typename T>
+std::string Utils::to_str(const T &num) {
+	std::stringstream stream;
+	std::string str;
+	stream << num;
+	stream >> str;
+
+	return str;
 }
 
 #ifdef OS_WINDOWS

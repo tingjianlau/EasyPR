@@ -51,6 +51,14 @@ class CPlateLocate {
   void affine(const Mat& in, Mat& out, const double slope);
 
   int plateColorLocate(Mat src, std::vector<CPlate>& candPlates, int index = 0);
+  /*
+  @brief:		形态学定位法
+  @method:	easypr::CPlateLocate::plateSobelLocate
+  @access:    public
+  @param 		src		原始图片
+  @param 		candPlates	输出候选车牌
+  @param 		index
+  */
   int plateSobelLocate(Mat src, std::vector<CPlate>& candPlates, int index = 0);
   int sobelOperT(const Mat& in, Mat& out, int blurSize, int morphW, int morphH);
 
@@ -102,8 +110,11 @@ class CPlateLocate {
   static const int DEFAULT_GAUSSIANBLUR_SIZE = 5;
   static const int SOBEL_SCALE = 1;
   static const int SOBEL_DELTA = 0;
+  // 输出图像的深度
   static const int SOBEL_DDEPTH = CV_16S;
+  // x 方向求导的阶数 
   static const int SOBEL_X_WEIGHT = 1;
+  // y 方向求导的阶数 
   static const int SOBEL_Y_WEIGHT = 0;
   static const int DEFAULT_MORPH_SIZE_WIDTH = 17;  // 17
   static const int DEFAULT_MORPH_SIZE_HEIGHT = 3;  // 3
@@ -129,9 +140,12 @@ class CPlateLocate {
 
  protected:
 
+   // 高斯模糊半径
   int m_GaussianBlurSize;
 
+  // 闭操作结构元素宽度
   int m_MorphSizeWidth;
+  // 闭操作结构元素高度
   int m_MorphSizeHeight;
 
 
