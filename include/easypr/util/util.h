@@ -127,6 +127,7 @@ class Utils {
    */
   static bool imwrite(const std::string &file, const cv::Mat &image);
 
+  /*-------------------------- start to add by tjliu -----------------*/
   /* 
   @brief:    自定义imshow函数，用于控制销毁的时间
   @method:	easypr::Utils::imshow
@@ -145,7 +146,59 @@ class Utils {
   @param 		num		需转换的对象
   */
   template<typename T>
-  static  std::string to_str(const T &num);
+  static  std::string to_str(const T num) {
+	  std::stringstream stream;
+	  std::string str;
+	  stream << num;
+	  stream >> str;
+
+	  return str;
+  }
+  //static  std::string to_str(const int num);
+
+  /*
+  @brief:		从指定文件中读取所有行
+  @method:	realLines
+  @access:    public
+  @param 		fname	文件名
+  */
+  static std::vector<std::string> realLines(const std::string fname) {
+	  std::ifstream file(fname);
+	  std::vector<std::string> lines;
+		std::string line;
+	  while (getline(file, line)) {
+		  lines.push_back(line);
+	  }
+
+	  return lines;
+  }
+
+  /* 
+  @brief:		将所有可疑车牌区域在原图中用矩形圈出
+  @method:	easypr::Utils::writeROIs
+  @access:    public static 
+  @param 		src		原图
+  @param 		roi_rects	所有车牌可疑区域
+  @param 		topath		输出路径
+  @param 		color		矩形边颜色
+  @param 		thickness	矩形边宽度
+  */
+  static bool writeROIs(const cv::Mat src, const std::vector<cv::RotatedRect> roi_rects,
+	  std::string topath, const cv::Scalar& color = cv::Scalar(65, 254, 254), int thickness = 2);
+
+  /*
+  @brief:		将所有可疑车牌区域在原图中用矩形圈出
+  @method:	easypr::Utils::writeROIs
+  @access:    public static
+  @param 		src		原图
+  @param 		plates	所有候选车牌
+  @param 		topath		输出路径
+  @param 		color		矩形边颜色
+  @param 		thickness	矩形边宽度
+  */ 
+  //static bool writeROIs(const cv::Mat src, const std::vector<CPlate> plates,
+//	  std::string topath, const cv::Scalar& color = (65, 254, 254), int thickness = 2);
+  /*-------------------------- end to add by tjliu -----------------*/
 
 #ifdef OS_WINDOWS
   static std::string utf8_to_gbk(const char* utf8);

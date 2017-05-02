@@ -27,7 +27,7 @@ namespace easypr {
 class CPlateLocate {
  public:
   CPlateLocate();
-
+  const string TMP_BASEPATH = "resources/image/tmp";
   int sobelFrtSearch(const Mat& src, std::vector<Rect_<float>>& outRects);
   int sobelSecSearch(Mat& bound, Point2f refpoint,
                      std::vector<RotatedRect>& outRects);
@@ -51,19 +51,11 @@ class CPlateLocate {
   void affine(const Mat& in, Mat& out, const double slope);
 
   int plateColorLocate(Mat src, std::vector<CPlate>& candPlates, int index = 0);
-  /*
-  @brief:		形态学定位法
-  @method:	easypr::CPlateLocate::plateSobelLocate
-  @access:    public
-  @param 		src		原始图片
-  @param 		candPlates	输出候选车牌
-  @param 		index
-  */
+
   int plateSobelLocate(Mat src, std::vector<CPlate>& candPlates, int index = 0);
   int sobelOperT(const Mat& in, Mat& out, int blurSize, int morphW, int morphH);
 
   int plateMserLocate(Mat src, std::vector<CPlate>& candPlates, int index = 0);
-
 
   int colorSearch(const Mat& src, const Color r, Mat& out,
                   std::vector<RotatedRect>& outRects);
@@ -72,6 +64,14 @@ class CPlateLocate {
     vector<vector<CPlate>>& out_plateVec, bool usePlateMser, vector<vector<RotatedRect>>& out_plateRRect,
     int img_index = 0, bool showDebug = false);
 
+  /*
+  @brief:		车牌定位: 颜色定位法，文理定位法，文字定位法
+  @method:	easypr::CPlateLocate::plateLocate
+  @access:    public
+  @param 		src		原图
+  @param 		resultVec	车牌ROI子图
+  @param 		index
+  */
   int plateLocate(Mat, std::vector<Mat>&, int = 0);
   int plateLocate(Mat, std::vector<CPlate>&, int = 0);
 

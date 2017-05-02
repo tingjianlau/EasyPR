@@ -15,41 +15,55 @@ namespace easypr {
 		*/
 		int test_plate_locate() {
 			cout << "test_plate_locate" << endl;
+			
+			const string fpath = "resources/image/my_test/allImagePath.txt";
 
-			//const string file = "resources/image/plate_locate.jpg";
-			//const string file = "resources/image/ÔÁDR9475_20170426155554373.jpg";
-			//const string file = "resources/image/ËÕB23B77_20170425154110628.jpg";
-			const string file = "resources/image/ÁÉBL7P50_20170425181159458.jpg";
-			//const string file = "resources/image/´¨A019W2.jpg";
-
-			cv::Mat src = imread(file);
-			if (src.data == NULL)
+			vector<string> fnames = utils::realLines(fpath);
+			size_t n_imags = fnames.size();
+			if (!n_imags)
 			{
-				std::cout << "read image from " << file << " failed!" << std::endl;
+				std::cout << "write to " << fpath << " failed!" << endl;
 				getchar();
 				getchar();
 				exit(0);
 			}
-
-			vector<cv::Mat> resultVec;
-			CPlateLocate plate;
-			plate.setDebug(false);
-			plate.setImshow(false);
-			//plate.setLifemode(true);
-
-			int result = plate.plateLocate(src, resultVec);
-			/*
-			if (result == 0) {
-				size_t num = resultVec.size();
-				for (size_t j = 0; j < num; j++) {
-					cv::Mat resultMat = resultVec[j];
-					imshow("plate_locate", resultMat);
-					waitKey(0);
+			int result = 0;
+			n_imags = 1;
+			for (size_t i = 0; i < n_imags; i++)
+			{
+				//fnames[i] = "resources/image/my_test/15.jpg";
+				cv::Mat src = imread(fnames[i]);
+				if (src.data == NULL)
+				{
+					std::cout << "read image from " << fnames[i] << " failed!" << std::endl;
+					continue;
 				}
-				destroyWindow("plate_locate");
-			}
-			*/
+				else {
+					std::cout << "\n++++++++++++++++++++++Start to loate plate-" << i << "++++++++++++++++\n" << std::endl;
+				}
 
+				vector<cv::Mat> resultVec;
+				CPlateLocate plate;
+				plate.setDebug(false);
+				plate.setImshow(false);
+				//plate.setLifemode(true);
+
+				result = plate.plateLocate(src, resultVec, i);
+				/*
+				if (result == 0) {
+					size_t num = resultVec.size();
+					for (size_t j = 0; j < num; j++) {
+						cv::Mat resultMat = resultVec[j];
+						imshow("plate_locate", resultMat);
+						waitKey(0);
+					}
+					destroyWindow("plate_locate");
+				}
+				*/
+
+				std::cout << "\n+++++++++++++++++++End to loate plate-" << i << "+++++++++++++++\n" << std::endl;
+
+			}
 			return result;
 		}
 

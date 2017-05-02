@@ -1,4 +1,5 @@
 #include "easypr/util/util.h"
+#include "opencv2/imgproc.hpp"
 #include <string>
 #include <sstream>
 
@@ -245,6 +246,7 @@ bool Utils::mkdir(const std::string folder) {
   return true;
 }
 
+ /*-------------------------- start to add by tjliu -----------------*/
 bool Utils::imwrite(const std::string &file, const cv::Mat &image) {
   auto folder = file.substr(0, utils::get_last_slash(file));
   Utils::mkdir(folder);
@@ -264,15 +266,58 @@ void Utils::imshow(const std::string & winname, cv::Mat mat, int delay, int flag
 	cv::destroyWindow(winname);
 }
 
-template<typename T>
-std::string Utils::to_str(const T &num) {
-	std::stringstream stream;
-	std::string str;
-	stream << num;
-	stream >> str;
+bool Utils::writeROIs(const cv::Mat src, const std::vector<cv::RotatedRect> roi_rects,
+	std::string topath, const cv::Scalar& color, int thickness) {
+	cv::Mat mat_tmp;
+	src.copyTo(mat_tmp);
 
-	return str;
+	std::cout << color << std::endl;
+	cv::Point2f rect_points[4];
+	for (size_t i = 0; i < roi_rects.size(); i++)
+	{
+		roi_rects[i].points(rect_points);
+		for (size_t j = 0; j < 4; j++)
+		{
+			cv::line(mat_tmp, rect_points[j], rect_points[(j + 1) % 4],
+				color, thickness, 8);
+		}
+	}
+	if (Utils::imwrite(topath, mat_tmp))
+	{
+		return true;
+	}
+	else {
+		return false;
+	}
 }
+/*
+bool Utils::writeROIs(const cv::Mat src, const std::vector<CPlate> plates,
+	std::string topath, const cv::Scalar& color, int thickness) {
+	cv::Mat mat_tmp;
+	src.copyTo(mat_tmp);
+
+	cv::Point2f rect_points[4];
+	cv::RotatedRect roi_rects;
+	for (size_t i = 0; i < plates.size(); i++)
+	{
+		roi_rects = plates[i].getPlatePos();
+		roi_rects.points(rect_points);
+		for (size_t j = 0; j < 4; j++)
+		{
+			cv::line(mat_tmp, rect_points[j], rect_points[(j + 1) % 4],
+				color, thickness, 8);
+		}
+	}
+	if (Utils::imwrite(topath, mat_tmp))
+	{
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+*/
+ /*-------------------------- end to add by tjliu -----------------*/
 
 #ifdef OS_WINDOWS
 std::string Utils::utf8_to_gbk(const char* utf8) {

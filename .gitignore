@@ -5,6 +5,7 @@ resources/image/tmp/
 *.suo
 *.sdf
 *.opensdf
+*.opendb
 *.exe
 *.dll
 *.ilk

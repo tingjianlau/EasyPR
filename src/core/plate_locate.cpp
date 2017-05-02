@@ -1,4 +1,4 @@
-#include "..\..\include\easypr\core\plate_locate.h"
+
 #include "easypr/core/plate_locate.h"
 #include "easypr/core/core_func.h"
 #include "easypr/util/util.h"
@@ -7,7 +7,6 @@
 using namespace std;
 
 namespace easypr {
-
 	const float DEFAULT_ERROR = 0.9f;    // 0.6
 	const float DEFAULT_ASPECT = 3.75f;  // 3.75
 
@@ -80,7 +79,7 @@ namespace easypr {
 		// cout << "area:" << area << endl;
 		// cout << "r:" << r << endl;
 
-		if ((area < min || area > max) || (r < rmin || r > rmax))
+		if ((area < min || area > max) || (r < rmin || r > rmax)) 
 			return false;
 		else
 			return true;
@@ -116,7 +115,6 @@ namespace easypr {
 		return 0;
 	}
 
-
 	/*
 	@brief:   根据颜色查找车牌所在区域
 	@method:  easypr::CPlateLocate::colorSearch
@@ -131,9 +129,7 @@ namespace easypr {
 		std::cout << "Start to color-" << r << "-Search" << std::endl;
 		Mat match_grey;
 
-		// width is important to the final results;
-
-		// 用于进行形态操作的结构体的大小
+		// 用于进行形态操作的结构体的大小，非常重要
 		const int color_morph_width = 10;
 		const int color_morph_height = 2;
 
@@ -266,7 +262,7 @@ namespace easypr {
 
 		vector<RotatedRect> first_rects;
 
-		while (itc != contours.end()) {
+	while (itc != contours.end()) {
 			RotatedRect mr = minAreaRect(Mat(*itc));
 
 			if (verifySizes(mr)) {
@@ -290,6 +286,7 @@ namespace easypr {
 			}
 			utils::imwrite("resources/image/tmp/sobelLocate_7_allConours_after_verifySize.jpg", contoursImage);
 		}
+
 		std::cout << "Get " << first_rects.size() << " contours after verifySize ..." << std::endl;
 
 		if (m_debug)
@@ -410,15 +407,12 @@ namespace easypr {
 	*/
 	int CPlateLocate::sobelSecSearch(Mat &bound, Point2f refpoint,
 		vector<RotatedRect> &outRects) {
+		m_debug = false;
 		Mat bound_threshold;
 
 		// 与第一次sobel搜索使用的参数不一致
 		sobelOper(bound, bound_threshold, 3, 10, 3);
 		
-		if (m_debug)
-		{
-			utils::imwrite("resources/image/tmp/sobelSecSearch.jpg", bound_threshold);
-		}
 
 		vector<vector<Point>> contours;
 		findContours(bound_threshold,
@@ -446,6 +440,24 @@ namespace easypr {
 				outRects.push_back(refroi);
 			}
 		}
+		if (m_debug)
+		{
+			Mat mat_debug;
+			bound.copyTo(mat_debug);
+			// 在原图中标识出所有ROI区域
+			for (size_t i = 0; i < outRects.size(); i++) {
+				RotatedRect roi_rect = outRects[i];
+				if (m_debug) {
+					Point2f rect_points[4];
+					roi_rect.points(rect_points);
+					for (int j = 0; j < 4; j++)
+						line(mat_debug, rect_points[j], rect_points[(j + 1) % 4],
+							Scalar(0, 255, 255), 1, 8);
+				}
+				std::string fname = "resources/image/tmp/sobelLocate_sec_7_all_ROI_rect.jpg";
+				utils::imwrite(fname, mat_debug);
+			}
+		}
 
 		return 0;
 	}
@@ -468,6 +480,7 @@ namespace easypr {
 		GaussianBlur(in, mat_blur, Size(blurSize, blurSize), 0, 0, BORDER_DEFAULT);
 		if (m_debug)
 		{
+			utils::imwrite("resources/image/tmp/sobelLocate_0_src.jpg", in);
 			utils::imwrite("resources/image/tmp/sobelLocate_1_gaussianBlur.jpg", mat_blur);
 		}
 
@@ -659,7 +672,7 @@ namespace easypr {
 					Utils::imwrite("resources/image/tmp/bound_mat_from_binary.jpg", bound_mat_b);
 				}
 
-				if (0)
+				if (1)
 				{
 					std::cout << i << "-th roi_angle:" << roi_angle << std::endl;
 				}
@@ -724,7 +737,8 @@ namespace easypr {
 				}
 			}
 		}
-
+		
+		
 		std::cout << "Done for " << color << "-color deskew and got "<< outPlates.size() << " plates" << std::endl;
 
 		return 0;
@@ -983,7 +997,7 @@ namespace easypr {
 	int CPlateLocate::plateColorLocate(Mat src, vector<CPlate> &candPlates,
 		int index) {
 		// 存放包含疑似车牌区域轮廓的最小斜矩形 
-		std::cout << "\n====================== Start to Plate Color Locate ==================" << std::endl;
+		std::cout << "\n====================== Start to Plate Color Locate ==================\n" << std::endl;
 		vector<RotatedRect> rects_color_blue;
 		rects_color_blue.reserve(64);
 		vector<RotatedRect> rects_color_yellow;
@@ -1017,6 +1031,7 @@ namespace easypr {
 		candPlates.insert(candPlates.end(), plates_blue.begin(), plates_blue.end());
 		candPlates.insert(candPlates.end(), plates_yellow.begin(), plates_yellow.end());
 
+		
 		std::cout << "\n====================== End to Plate Color Locate ==================" << std::endl;
 		return 0;
 	}
@@ -1159,17 +1174,25 @@ namespace easypr {
 	// 和sobelOper()一样一样?
 	int CPlateLocate::sobelOperT(const Mat &in, Mat &out, int blurSize, int morphW,
 		int morphH) {
+		m_debug = false;
 		Mat mat_blur;
 		mat_blur = in.clone();
 		GaussianBlur(in, mat_blur, Size(blurSize, blurSize), 0, 0, BORDER_DEFAULT);
+		if (m_debug)
+		{
+			utils::imwrite("resources/image/tmp/sobelLocate_sec_1_cur_src.jpg", in);
+			utils::imwrite("resources/image/tmp/sobelLocate_sec_2_gaussianBlur.jpg", mat_blur);
+		}
 
 		Mat mat_gray;
 		if (mat_blur.channels() == 3)
 			cvtColor(mat_blur, mat_gray, CV_BGR2GRAY);
 		else
 			mat_gray = mat_blur;
-
-		//utils::imwrite("resources/image/tmp/grayblure.jpg", mat_gray);
+		if (m_debug)
+		{
+			utils::imwrite("resources/image/tmp/sobelLocate_sec_3_gray.jpg", mat_gray);
+		}
 
 		// equalizeHist(mat_gray, mat_gray);
 
@@ -1186,25 +1209,41 @@ namespace easypr {
 		Mat grad;
 		addWeighted(abs_grad_x, 1, 0, 0, 0, grad);
 
-		//utils::imwrite("resources/image/tmp/graygrad.jpg", grad);
+		if (m_debug)
+		{
+			utils::imwrite("resources/image/tmp/sobelLocate_sec_4_sobel.jpg", grad);
+		}
 
 		Mat mat_threshold;
 		double otsu_thresh_val =
 			threshold(grad, mat_threshold, 0, 255, CV_THRESH_OTSU + CV_THRESH_BINARY);
 
-		//utils::imwrite("resources/image/tmp/grayBINARY.jpg", mat_threshold);
+		if (m_debug)
+		{
+			utils::imwrite("resources/image/tmp/sobelLocate_sec_5_ostuBinary.jpg", mat_threshold);
+		}
 
 		Mat element = getStructuringElement(MORPH_RECT, Size(morphW, morphH));
 		morphologyEx(mat_threshold, mat_threshold, MORPH_CLOSE, element);
 
-		//utils::imwrite("resources/image/tmp/phologyEx.jpg", mat_threshold);
+		if (m_debug)
+		{
+			utils::imwrite("resources/image/tmp/sobelLocate_sec_5_closeMorphologyEx.jpg", mat_threshold);
+		}
 
 		out = mat_threshold;
 
 		return 0;
 	}
 
-	
+	/*
+	@brief:		形态学定位法
+	@method:	easypr::CPlateLocate::plateSobelLocate
+	@access:    public
+	@param 		src		原始图片
+	@param 		candPlates	输出候选车牌
+	@param 		index
+	*/
 	int CPlateLocate::plateSobelLocate(Mat src, vector<CPlate> &candPlates,
 		int index) {
 		std::cout << "\n====================== Start to Plate Sobel Locate ==================" << std::endl;
@@ -1307,6 +1346,7 @@ namespace easypr {
 		Mat src_b;
 		sobelOper(src, src_b, 3, 10, 3);
 
+		std::cout << "After all Sobel search in origin ROIs, we got " << rects_sobel_all.size() << " ROI!" << std::endl;
 		deskew(src, src_b, rects_sobel_all, plates);
 
 		//for (size_t i = 0; i < plates.size(); i++) 
@@ -1318,57 +1358,72 @@ namespace easypr {
 		return 0;
 	}
 
-
-	/* 
-	@brief:		车牌定位: 颜色定位法，文理定位法，文字定位法
-	@method:	easypr::CPlateLocate::plateLocate
-	@access:    public 
-	@param 		src		原图
-	@param 		resultVec	车牌ROI子图
-	@param 		index
-	*/
+	
 	int CPlateLocate::plateLocate(Mat src, vector<Mat> &resultVec, int index) {
 		vector<CPlate> all_result_Plates;
 
+		// 颜色定位
 		int n_curPlates = 0;
 		if (1)
 		{
 			plateColorLocate(src, all_result_Plates, index);
-			n_curPlates = all_result_Plates.size();
 			cout << "\nAfter color Locate, we got " << all_result_Plates.size() << " condidate plates!!" << endl;
+			vector<RotatedRect> roi_rects;
+			string pathname;
 			if (1)
 			{
 				for (int i = 0; i < all_result_Plates.size(); i++)
 				{
-					string pathname = "resources/image/tmp/plate_colorLocate-" + utils::to_str(i) + ".jpg";
+					pathname = TMP_BASEPATH + "/plate-" + utils::to_str(index) + "_colorLocate-" + utils::to_str(i) + ".jpg";
 					utils::imwrite(pathname, all_result_Plates[i].getPlateMat());
+					roi_rects.push_back(all_result_Plates[i].getPlatePos());
+				}
+				pathname = TMP_BASEPATH + "/plate-" + utils::to_str(index) + "_colorLocate-ROIs.jpg";
+				utils::writeROIs(src, roi_rects, pathname);
+				pathname = TMP_BASEPATH + "/plate-" + utils::to_str(index) + "_src.jpg";
+				utils::imwrite(pathname, src);
+			}
+		}
+
+
+		// 形态学定位
+		n_curPlates = all_result_Plates.size();
+		if (1)
+		{
+			plateSobelLocate(src, all_result_Plates, index);
+			cout << "\nAfter Sobel Locate, we got " << all_result_Plates.size() - n_curPlates << " condidate plates!!" << endl;
+			vector<RotatedRect> roi_rects;
+			string pathname;
+			if (1)
+			{
+				for (int i = n_curPlates; i < all_result_Plates.size(); i++)
+				{
+					pathname = TMP_BASEPATH + "/plate-" + utils::to_str(index) + "_sobelLocate-" + utils::to_str(i - n_curPlates) + ".jpg";
+					utils::imwrite(pathname, all_result_Plates[i - n_curPlates].getPlateMat());
+					roi_rects.push_back(all_result_Plates[i-n_curPlates].getPlatePos());
+				}
+				pathname = TMP_BASEPATH + "/plate-" + utils::to_str(index) + "_sobelLocate-ROIs.jpg";
+				utils::writeROIs(src, roi_rects, pathname);
+				pathname = TMP_BASEPATH + "/plate-" + utils::to_str(index) + "_src.jpg";
+				utils::imwrite(pathname, src);
+			}
+		}
+
+		// 文字定位
+		n_curPlates = all_result_Plates.size();
+		if (0)
+		{
+			plateMserLocate(src, all_result_Plates, index);
+			cout << "\nAfter Mser Locate, we got " << all_result_Plates.size() - n_curPlates << " condidate plates!!" << endl;
+			if (1)
+			{
+				for (int i = n_curPlates; i < all_result_Plates.size(); i++)
+				{
+					string pathname = "resources/image/tmp/plate_mserLocate-" + utils::to_str(i - n_curPlates) + ".jpg";
+					utils::imwrite(pathname, all_result_Plates[i - n_curPlates].getPlateMat());
 				}
 			}
 		}
-
-		plateSobelLocate(src, all_result_Plates, index);
-		cout << "\nAfter Sobel Locate, we got " << all_result_Plates.size() - n_curPlates << " condidate plates!!" << endl;
-		if (1)
-		{
-			for (int i = n_curPlates; i < all_result_Plates.size(); i++)
-			{
-				string pathname = "resources/image/tmp/plate_sobelLocate-" + utils::to_str(i-n_curPlates) + ".jpg";
-				utils::imwrite(pathname, all_result_Plates[i-n_curPlates].getPlateMat());
-			}
-		}
-		n_curPlates = all_result_Plates.size();
-
-		plateMserLocate(src, all_result_Plates, index);
-		cout << "\nAfter Mser Locate, we got " << all_result_Plates.size() - n_curPlates << " condidate plates!!" << endl;
-		if (1)
-		{
-			for (int i = n_curPlates; i < all_result_Plates.size(); i++)
-			{
-				string pathname = "resources/image/tmp/plate_mserLocate-" + utils::to_str(i-n_curPlates) + ".jpg";
-				utils::imwrite(pathname, all_result_Plates[i-n_curPlates].getPlateMat());
-			}
-		}
-
 
 		for (size_t i = 0; i < all_result_Plates.size(); i++) {
 			CPlate plate = all_result_Plates[i];

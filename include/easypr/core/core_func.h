@@ -12,16 +12,7 @@ Namespace where all the C++ EasyPR functionality resides
 */
 namespace easypr {
 
-/* 
-@brief: 返回经过特定颜色匹配过的二值灰度图
-		即依次扫面图像中的每一个像素点，如果判断该像素点是特定颜色，则将该点设为白点，否则设为黑点 
-@method:	easypr::colorMatch
-@access:	public 
-@param src 输入RGB图像
-@param match 输出灰度图（只有0和255两个值，255代表匹配，0代表不匹配）
-@param r 指定的颜色
-@param adaptive_minsv	是否自适应s，v值
-*/
+
 Mat colorMatch(const Mat& src, Mat& match, const Color r,
                const bool adaptive_minsv);
 
